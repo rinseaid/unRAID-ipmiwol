@@ -20,7 +20,6 @@ This Plugin installs libvirt tools for unRaid 6.4+  All dependencies are install
 ###2019.04.06
 - initial release
 </CHANGES>
-  </FILE>
   <FILE Name="/boot/config/domain.cfg">
     <INLINE><![CDATA[
 WOL="disable"
@@ -61,8 +60,8 @@ if [ "$WOL" == "enable" ]; then
 fi
 
 </INLINE>
-  </FILE>
-  <!--
+</FILE>
+<!--
 The 'install' script.
 -->
   <FILE Run="/bin/bash">
