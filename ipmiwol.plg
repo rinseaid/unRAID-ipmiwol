@@ -1,0 +1,138 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "ipmiwol">
+<!ENTITY author "rinseaid">
+<!ENTITY version "2019.04.06">
+<!ENTITY launch "Settings/VMSettings">
+<!ENTITY gitURL "https://raw.githubusercontent.com/&author;/unRAID-ipmiwol/master">
+<!ENTITY pluginURL "&gitURL;/plugin/&name;.plg">
+<!ENTITY pkgURL "&gitURL;/packages">
+<!ENTITY plgPATH "/boot/config/plugins/&name;">
+<!ENTITY plgNAME "&name;-&version;-x86_64-1">
+<!ENTITY emhttp "/usr/local/emhttp/plugins/&name;">
+]>
+<PLUGIN name="&name;" author="&author;" launch="&launch;" version="&version;" pluginURL="&pluginURL;" support="http://lime-technology.com/forum/index.php?topic=44017.0">
+  <!--
+This Plugin installs libvirt tools for unRaid 6.4+  All dependencies are installed as needed and is controlable from the webgui.
+-->
+  <CHANGES>
+##&name;
+###2019.04.06
+- initial release
+</CHANGES>
+  </FILE>
+  <FILE Name="/boot/config/domain.cfg">
+    <INLINE><![CDATA[
+WOL="disable"
+]]></INLINE>
+  </FILE>
+  <!--
+The 'plugin' package file.
+-->
+  <FILE Name="&plgPATH;/&plgNAME;.txz">
+    <URL>&gitURL;/archive/&plgNAME;.txz</URL>
+  </FILE>
+  <!--
+The 'plugin' package MD5 hash.
+-->
+  <FILE Name="&plgPATH;/&plgNAME;.md5">
+    <URL>&gitURL;/archive/&plgNAME;.md5</URL>
+  </FILE>
+  <!-- WORKAROUND -->
+  <FILE Name="/tmp/start_&name;" Mode="0770">
+    <INLINE>
+#!/bin/bash
+CONFIG=/boot/config/domain.cfg
+
+# read our configuration
+if [ -e "$CONFIG" ]; then
+    source "$CONFIG"
+fi
+
+# stopping service
+/etc/rc.d/rc.&name; stop
+sleep 1
+
+# start service if enabled
+if [ "$WOL" == "enable" ]; then
+    # starting service
+    /etc/rc.d/rc.&name; start
+    sleep 1
+fi
+
+</INLINE>
+  </FILE>
+  <!--
+The 'install' script.
+-->
+  <FILE Run="/bin/bash">
+    <INLINE>
+#Verify unRAID Version
+source /etc/unraid-version
+VER=${version:0:3}
+
+if [[ $VER == 6.0 ]]; then
+  echo "unRAID version 6.1 or higher is required"
+  exit 1
+fi
+
+# Verify and install plugin package
+sum1=$(/usr/bin/md5sum &plgPATH;/&plgNAME;.txz)
+sum2=$(/usr/bin/cat &plgPATH;/&plgNAME;.md5)
+if [ "${sum1:0:32}" != "${sum2:0:32}" ]; then
+  echo "Wrong 'plugin' package md5 hash."
+  rm &plgPATH;/&plgNAME;.txz
+  rm &plgPATH;/&plgNAME;.md5
+  exit 1
+else
+    upgradepkg --install-new &plgPATH;/&plgNAME;.txz
+
+    # Start scripts if enabled
+    echo "starting ipmi services..."
+    at -M -f /tmp/start_&name; now 2&gt;/dev/null
+
+    sleep 1
+
+    rm -f /tmp/start_&name;
+
+    # Cleaning old source files
+    find &plgPATH;/ -type f -iname "&name;*.txz" ! -iname "*&version;*" -delete
+    find &plgPATH;/ -type f -iname "&name;*.md5" ! -iname "*&version;*" -delete
+
+echo ""
+echo "--------------------------------------------------------------------------------------"
+echo " &name; has been installed."
+echo " This plugin requires NerdPack's Python 2 to operate"
+echo " http://raw.githubusercontent.com/dmacias72/unRAID-NerdPack/master/plugin/NerdPack.plg"
+echo " Copyright 2016-2019, &author;"
+echo " Version: &version;"
+echo "--------------------------------------------------------------------------------------"
+echo ""
+
+fi
+</INLINE>
+  </FILE>
+  <!--
+The 'remove' script.
+-->
+  <FILE Run="/bin/bash" Method="remove">
+    <INLINE>
+&emhttp;/scripts/stop
+removepkg &plgPATH;/*.txz
+rm -rf &emhttp;
+rm -f &plgPATH;/*.txz \
+  &plgPATH;/*.md5
+
+# restore VM Manager Menu
+#sed -i -- 's/VMManager:1/OtherSettings/g' /usr/local/emhttp/plugins/dynamix.vm.manager/VMSettings.page
+
+echo ""
+echo "-----------------------------------------------------------"
+echo " &name; has been removed."
+echo " Copyright 2016-2019, &author;"
+echo " Version: &version;"
+echo "-----------------------------------------------------------"
+echo ""
+</INLINE>
+  </FILE>
+</PLUGIN>
