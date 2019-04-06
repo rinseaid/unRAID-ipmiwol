@@ -18,7 +18,7 @@ This Plugin installs libvirt tools for unRaid 6.4+  All dependencies are install
   <CHANGES>
 ##&name;
 ###2019.04.06
-- initial release
+- initial release/commit
 </CHANGES>
   <FILE Name="/boot/config/domain.cfg">
     <INLINE><![CDATA[
